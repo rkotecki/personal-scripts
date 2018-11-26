@@ -14,6 +14,8 @@
 ################################################################################
 VERSION="0.1.1"
 KNIFE_DIR="/root/chef-repo/.chef"
+PROD_KNIFE='knife.rb'
+DEV_KNIFE='kinfe_dev.rb'
 CHEF_DIR="/opt/chef"
 SUPERMARKET='https://supermarket.chef.io'
 
@@ -41,11 +43,11 @@ helpMenu()
 ################################################################################
 numbers()
 {
-  PROD_CBOOK_NUM=`knife cookbook list -c $KNIFE_DIR/knife.rb|wc -l`
-  PROD_NODE_NUM=`knife node list -c $KNIFE_DIR/knife.rb|wc -l`
-  DEV_CBOOK_NUM=`knife cookbook list -c $KNIFE_DIR/knife_dev.rb|wc -l`
-  DEV_NODE_NUM=`knife coobkook list -c $KNIFE_DIR/knife_dev.rb|wc -l`
-  SPRMRT_NUM=`knife cookbook site list -m $SUPERMARKET -w -c $KNIFE_DIR/knife.rb|wc -l`
+  PROD_CBOOK_NUM=`knife cookbook list -c $KNIFE_DIR/$PROD_KNIFE | wc -l`
+  PROD_NODE_NUM=`knife node list -c $KNIFE_DIR/$PROD_KNIFE | wc -l`
+  DEV_CBOOK_NUM=`knife cookbook list -c $KNIFE_DIR/$DEV_KNIFE | wc -l`
+  DEV_NODE_NUM=`knife coobkook list -c $KNIFE_DIR/$DEV_KNIFE | wc -l`
+  SPRMRT_NUM=`knife cookbook site list -m $SUPERMARKET -w -c $KNIFE_DIR/$PROD_KNIFE | wc -l`
 
   echo " "
   echo "Number of cookbooks on DEVELOPMENT Chef server:            $DEV_CBOOK_NUM"
@@ -53,4 +55,39 @@ numbers()
   echo "Number of cookbook on Chef Supermarket:                    $SPRMRT_NUM"
   echo "Number of nodes registered to DEVELOPMENT Chef server:     $DEV_NODE_NUM"
   echo "Number of nodes registered to PRODUCTION Chef server:      $PROD_NODE_NUM"
+}
+
+################################################################################
+# Set cookbooks function to get the updated cookbooks since last run
+################################################################################
+cookbooks()
+{
+  CHEF_LOGS=$CHEF_DIR/logs
+  DT=`date '+%Y%m%d%H%M%S'`
+
+  NEWEST_PROD=`ls -t1 $CHEF_LOGS/prod* | head -n 1`
+  NEWEST_DEV=`ls -t1 $CHEF_LOGS/dev* | head -n 1`
+
+  knife cookbook list -c $KNIFE_DIR/$PROD_KNIFE | awk '{print $1}' >> $CHEF_LOGS/prod_$DT.txt
+  knife cookbook list -c $KNIFE_DIR/$DEV_KNIFE | awk '{print $1}' >> $CHEF_LOGS/dev_$DT.txt
+
+  diff $NEWEST_PROD $CHEF_LOGS/prod_$DT.txt | awk '{print $1}' > $CHEF_LOGS/prod_new.txt
+  diff $NEWEST_DEV $CHEF_LOGS/dev_$DT.txt | awk '{print $1}' > $CHEF_LOGS/dev_new.txt
+
+  sed -i '/^$/d' $CHEF_LOGS/prod_new.txt
+  sed -i '/^$/d' $CHEF_LOGS/dev_new.txt
+
+  NEW_PROD=`cat $CHEF_LOGS/prod_new.txt | wc -l`
+  NEW_DEV=`cat $CHEF_LOGS/dev_new.txt | wc -l`
+
+  echo " "
+  echo "$NEW_PROD New PRODUCTION cookbooks:"
+  cat $CHEF_LOGS/prod_new.txt
+  echo " "
+  echo "$NEW_DEV New DEVELOPMENT cookbooks:"
+  cat $CHEF_LOGS/dev_new.txt
+  echo " "
+
+  rm -f $CHEF_LOGS/prod_new.txt
+  rm -f $CHEF_LOGS/dev_new.txt
 }
