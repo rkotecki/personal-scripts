@@ -91,3 +91,56 @@ cookbooks()
   rm -f $CHEF_LOGS/prod_new.txt
   rm -f $CHEF_LOGS/dev_new.txt
 }
+
+################################################################################
+# Set version menu to display version and contributors
+################################################################################
+version()
+{
+  echo " "
+  echo "chefStats $VERSION"
+  echo " "
+  echo "Written by Ryan Kotecki"
+}
+
+################################################################################
+# parse falgs to do the proper functions
+################################################################################
+if (( $# < 1 )); then
+  numbers
+  cookbooks
+  exit 0
+else
+  while :; do
+    case $1 in
+      -h|-\?|--help)
+        helpMenu
+        exit 0
+      ;;
+      -a|--all)
+        numbers
+        cookbooks
+        exit 0
+      ;;
+      -c|--cookbooks)
+        cookbooks
+        exit 0
+      ;;
+      -n|--numbers)
+        numbers
+        exit 0
+      ;;
+      -v|--version)
+        version
+        exit 0
+      ;;
+      *)
+        echo "That is not a valid option"
+        echo " "
+        helpMenu
+        exit 1
+      ;;
+    esac
+    shift
+  done
+fi
